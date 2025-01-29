@@ -16,21 +16,18 @@ link_libraries(util)
 
 add_library(core MODULE src/core/main.cpp)
 set_property(TARGET core PROPERTY PREFIX "")
-set_property(TARGET core PROPERTY OUTPUT_NAME "dbghelp")
+set_property(TARGET core PROPERTY OUTPUT_NAME "d3d9")
 
-add_library(steam-bugfixes MODULE src/steam-bugfixes/main.cpp)
 add_library(loader MODULE src/loader/main.cpp)
 add_library(effect MODULE src/effect/main.cpp)
 add_library(combat MODULE src/combat/main.cpp)
 set_property(TARGET
-	steam-bugfixes
 	loader
 	effect
 	combat
 	PROPERTY PREFIX "nm")
 
-install(TARGETS core DESTINATION .)
-install(TARGETS steam-bugfixes DESTINATION ./plugin)
-install(TARGETS loader DESTINATION ./plugin)
-install(TARGETS effect DESTINATION ./plugin)
-install(TARGETS combat DESTINATION ./plugin)
+#install(TARGETS core DESTINATION .)
+#install(TARGETS loader DESTINATION ./plugin)
+install(TARGETS effect DESTINATION ./mods/bin)
+install(TARGETS combat DESTINATION ./mods/bin)

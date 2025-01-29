@@ -48,15 +48,22 @@ struct chunk_info
   uint32_t data0x1c;
 };
 
-struct chunk_info *get_chunk_info (ProductionPackage *, int32_t);
-bool load_data (ProductionPackage *, uintptr_t, const struct chunk_info *, void *);
+bool ProductionPackage_vfunction2 (ProductionPackage *, uintptr_t, const struct chunk_info *, void *);
+struct chunk_info *ProductionPackage_vfunction3 (ProductionPackage *, int32_t);
 HANDLE open_mod_file (int32_t);
 
-void *(*tmcl_malloc)(void *, uint32_t);
-VFPHook<decltype (get_chunk_info)> *get_chunk_info_hook;
-VFPHook<decltype (load_data)> *load_data_hook;
-map<const struct chunk_info *, pair<int32_t, const uint32_t>> chunk_info_to_index_and_original_size;
+//void *(*tmcl_malloc)(void *, uint32_t);
+VFPHook <decltype (ProductionPackage_vfunction2)> *ProductionPackage_vfunction2_hook;
+VFPHook <decltype (ProductionPackage_vfunction3)> *ProductionPackage_vfunction3_hook;
 
+struct index_and_original_size
+{
+  int32_t index;
+  uint32_t original_size;
+};
+map <const struct chunk_info *, struct index_and_original_size> chunk_info_to_index_and_original_size;
+
+/*
 bool
 load_data_ngs1 (ProductionPackage *thisptr, uintptr_t param2, const struct chunk_info *ci, void *out_buf)
 {
@@ -90,19 +97,21 @@ load_data_ngs1 (ProductionPackage *thisptr, uintptr_t param2, const struct chunk
 BAIL:
   return load_data_hook->call (thisptr, param2, ci, out_buf);
 }
+*/
 
+// This function loads the data which corresponds to the passed chunk info.
 // param2 is never used.
 bool
-load_data (ProductionPackage *thisptr, uintptr_t param2, const struct chunk_info *ci, void *out_buf)
+ProductionPackage_vfunction2 (ProductionPackage *thisptr, uintptr_t param2, const struct chunk_info *ci, void *out_buf)
 {
   HANDLE hFile;
 
   // We assume that chunk_info mapping is already made.
   auto e = chunk_info_to_index_and_original_size.find (ci)->second;
-  if (e.first == -1)
+  if (e.index == -1)
     goto BAIL;
 
-  hFile = open_mod_file (e.first);
+  hFile = open_mod_file (e.index);
   if (hFile == INVALID_HANDLE_VALUE)
     goto BAIL;
 
@@ -113,26 +122,28 @@ load_data (ProductionPackage *thisptr, uintptr_t param2, const struct chunk_info
   return r;
 
 BAIL:
-  return load_data_hook->call (thisptr, param2, ci, out_buf);
+  return ProductionPackage_vfunction2_hook->call (thisptr, param2, ci, out_buf);
 }
 
+// This function loads a chunk info from databin.
 struct chunk_info *
-get_chunk_info (ProductionPackage *thisptr, int32_t index)
+ProductionPackage_vfunction3 (ProductionPackage *thisptr, int32_t index)
 {
-  auto ci = get_chunk_info_hook->call (thisptr, index);
+  auto ci = ProductionPackage_vfunction3_hook->call (thisptr, index);
   if (!ci)
     return ci;
 
-  auto e = chunk_info_to_index_and_original_size.emplace (ci, pair {index, ci->decompressed_size}).first->second;
+  struct index_and_original_size i {index, ci->decompressed_size};
+  auto e = chunk_info_to_index_and_original_size.emplace (ci, i).first->second;
 
   HANDLE hFile;
   if ((hFile = open_mod_file (index)) == INVALID_HANDLE_VALUE)
     {
-      e.first = -1;
-      ci->decompressed_size = e.second;
+      e.index = -1;
+      ci->decompressed_size = e.original_size;
       return ci;
     }
-  e.first = index;
+  e.index = index;
 
   LARGE_INTEGER size;
   GetFileSizeEx (hFile, &size);
@@ -167,6 +178,8 @@ open_mod_file (int32_t index)
 void
 init ()
 {
+
+/*
   switch (image_id)
   {
   case ImageId::NGS1SteamAE:
@@ -183,6 +196,9 @@ init ()
     get_chunk_info_hook = new VFPHook {0x18ee6f8, get_chunk_info};
     break;
   }
+*/
+  ProductionPackage_vfunction2_hook = new VFPHook {0x19e1de8, ProductionPackage_vfunction2};
+  ProductionPackage_vfunction3_hook = new VFPHook {0x19e1df0, ProductionPackage_vfunction3};
 }
 
 } // namespace

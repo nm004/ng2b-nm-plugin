@@ -19,63 +19,46 @@ using namespace nm;
 namespace
 {
 
-// TODO?: Separate these to the other module.
-
 // table_n[x] <=> Ninja Dog? (not used), Acolyte, Warrior, Mentor, Master Ninja.
 // table_n[x][y] <=> Enemy HP Multiplier, Enemy Damage Multiplier, Enemy
 // Critical Damage Multiplier (e.g., striking a player on a wall).
 float enemy_hp_damage_multiplier_table[5][3] =
 {
-      {0.887, 0.786, 0.887},
-      {0.887, 0.786, 0.887},
-      {0.887, 0.887, 0.942},
-      {1.000, 0.942, 1.000},
-      {1.000, 1.128, 1.272}
+      {0.9, 0.8, 0.8},
+      {0.9, 0.8, 0.8},
+      {1.0, 1.0, 1.0},
+      {1.1, 1.3, 1.3},
+      {1.2, 1.8, 1.8}
       // for debugging.
       //{.001, 0, 0}
 };
-Patch<array<uintptr_t, 35>> *patch1;
-Patch<uint8_t> *patch2;
-Patch<uint8_t> *patch3;
+Patch<array<uintptr_t, 16>> *patch1;
+Patch<array<uintptr_t, 16>> *patch2;
+//Patch<uint8_t> *patch2;
+//Patch<uint8_t> *patch3;
 
 void
 init ()
 {
-  switch (image_id)
-  {
-  case ImageId::NGS2SteamAE:
-    {
-      // Let's make pointers to a table point to our table.
-      array<uintptr_t, 35> arr;
-      fill (arr.begin (), arr.end (), reinterpret_cast <uintptr_t> (&enemy_hp_damage_multiplier_table));
-      patch1 = new Patch {0x1829080, arr};
+  // Let's make pointers to a table point to our table.
+  array<uintptr_t, 16> arr;
+  fill (arr.begin (), arr.end (), reinterpret_cast <uintptr_t> (&enemy_hp_damage_multiplier_table));
+  // For story mode.
+  patch1 = new Patch {0x191e330, arr};
+  // For chapter challenge.
+  patch2 = new Patch {0x191e3e0, arr};
 
-      // Default damage multiplier (both player and enemy).
-      // This is used when an override multiplier doesn't exist.
-      //*reinterpret_cast <float *> (base_of_image + 0x1e26440 + 4) = 1;
+  // Default damage multiplier (both player and enemy).
+  // This is used when an override multiplier doesn't exist.
+  //*reinterpret_cast <float *> (base_of_image + 0x1e26440 + 4) = 1;
 
-      // Counter hit damage multiplier (player only?).
-      *reinterpret_cast <float *> (base_of_image + 0x1e26440 + 8) = 1.618;
+  // Counter hit damage multiplier (player only?).
+  //*reinterpret_cast <float *> (base_of_image + 0x1e26440 + 8) = 1.618;
 
-      // These makes Flying Swallow refer to the damage multiplier.
-      // ja imm
-      patch2 = new Patch {0x0f4bfcd, uint8_t {0x77}};
-      patch3 = new Patch {0x0f73607 + 1, uint8_t {0x87}};
-    }
-    break;
-  case ImageId::NGS2SteamJP:
-    {
-      array<uintptr_t, 35> arr;
-      fill (arr.begin (), arr.end (), reinterpret_cast <uintptr_t> (&enemy_hp_damage_multiplier_table));
-      patch1 = new Patch {0x1828080, arr};
-      patch2 = new Patch {0x0f4bdcd, uint8_t {0x77}};
-      patch3 = new Patch {0x0f73407 + 1, uint8_t {0x87}};
-
-      //*reinterpret_cast <float *> (base_of_image + 0x1e25440 + 4) = 1;
-      *reinterpret_cast <float *> (base_of_image + 0x1e25440 + 8) = 1.618;
-    }
-    break;
-  }
+  // These makes Flying Swallow refer to the damage multiplier.
+  // ja imm
+  //patch2 = new Patch {0x0f4bfcd, uint8_t {0x77}};
+  //patch3 = new Patch {0x0f73607 + 1, uint8_t {0x87}};
 }
 
 } // namespace
